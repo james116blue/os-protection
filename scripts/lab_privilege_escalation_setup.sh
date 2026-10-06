@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# lab_setup.sh — развёртывание учебного окружения для лабораторной работы
+# lab_privilege_escalation_setup.sh — развёртывание учебного окружения для лабораторной работы
 # по эскалации привилегий и защите Linux (SUID, PATH, sudoers, cron,
 # symlink-атаки, systemd).
 #
@@ -9,7 +9,7 @@
 # не содержащей важных данных и, желательно, изолированной от сети.
 #
 # Использование:
-#   sudo ./lab_setup.sh <student_id>
+#   sudo ./lab_privilege_escalation_setup.sh <student_id>
 #
 # <student_id> — любой идентификатор студента (ФИО, логин, номер группы).
 # Используется только для генерации уникальной метки LAB_TOKEN,
