@@ -38,26 +38,26 @@ if [[ -f "$MARKER" ]]; then
 fi
 
 echo "[*] Предварительные проверки..."
-if id -u student >/dev/null 2>&1; then
+if id -u hacker >/dev/null 2>&1; then
   cat >&2 <<'EOF'
-ОШИБКА: пользователь 'student' уже существует в системе.
+ОШИБКА: пользователь 'hacker' уже существует в системе.
 
 Этот скрипт рассчитан на чистую, только что установленную ВМ Debian 13,
-где учётной записи 'student' ещё нет. Повторное использование уже
+где учётной записи 'hacker' ещё нет. Повторное использование уже
 существующей записи небезопасно для лабораторной работы:
 
-  - её пароль не будет приведён к ожидаемому ('student'), поэтому шаги
-    лабораторной работы (su - student) могут не сработать;
+  - её пароль не будет приведён к ожидаемому ('hacker'), поэтому шаги
+    лабораторной работы (su - hacker) могут не сработать;
   - её shell/домашний каталог могут не соответствовать ожиданиям скрипта
     (например, nologin вместо bash, отсутствующий $HOME);
   - её текущие членства в группах (например, sudo) исказят задание 3
-    (student получит заведомо более широкие права, чем задумано).
+    (hacker получит заведомо более широкие права, чем задумано).
 
 Варианты:
   1) Запустить скрипт на чистой ВМ (рекомендуется).
   2) Если вы точно знаете, что эта запись создана предыдущим прогоном
      этого же скрипта и её можно удалить:
-       userdel -r student
+       userdel -r hacker
      и запустить скрипт заново.
 EOF
   exit 1
@@ -68,10 +68,10 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq build-essential sudo cron python3 coreutils util-linux >/dev/null
 
-echo "[*] Создание учебного пользователя 'student' (роль «нарушителя»)..."
-useradd -m -s /bin/bash student
-echo "student:student" | chpasswd
-echo "    Создан пользователь student / пароль student. Рекомендуется сменить пароль."
+echo "[*] Создание учебного пользователя 'hacker' (роль «нарушителя»)..."
+useradd -m -s /bin/bash hacker
+echo "hacker:hacker" | chpasswd
+echo "    Создан пользователь hacker / пароль hacker. Рекомендуется сменить пароль."
 
 echo "[*] Генерация уникальной метки лабораторной работы (анти-плагиат)..."
 TOKEN=$(printf '%s' "${STUDENT_ID}-$(hostname)-$(date +%s%N)-${RANDOM}${RANDOM}" | sha256sum | cut -c1-16)
@@ -136,7 +136,7 @@ chmod 4755 /usr/local/bin/sysinfo
 # ---------------------------------------------------------------------
 echo "[*] [3/6] Добавление опасной записи в sudoers..."
 cat > /etc/sudoers.d/90-lab <<'EOF'
-student ALL=(root) NOPASSWD: /usr/bin/less
+hacker ALL=(root) NOPASSWD: /usr/bin/less
 EOF
 chmod 440 /etc/sudoers.d/90-lab
 visudo -c -f /etc/sudoers.d/90-lab >/dev/null
@@ -165,11 +165,11 @@ chmod 644 /etc/cron.d/lab-healthcheck
 # ---------------------------------------------------------------------
 echo "[*] [5/6] Настройка привилегированного обработчика заявок (symlink)..."
 mkdir -p /var/lab/intake /var/lab/public
-chown student:student /var/lab/intake
+chown hacker:hacker /var/lab/intake
 chmod 755 /var/lab/intake
 chmod 755 /var/lab/public
 echo "тестовая заявка" > /var/lab/intake/submission.txt
-chown student:student /var/lab/intake/submission.txt
+chown hacker:hacker /var/lab/intake/submission.txt
 
 cat > /opt/lab-cron/collector.sh <<'EOF'
 #!/bin/bash
@@ -234,7 +234,7 @@ echo
 echo "====================================================================="
 echo " Учебное окружение развёрнуто."
 echo " Метка лабораторной работы (LAB_TOKEN): $TOKEN"
-echo " Учебный пользователь-«нарушитель»: student / student"
+echo " Учебный пользователь-«нарушитель»: hacker / hacker"
 echo
 echo " Откройте новый терминал (или выполните: exec bash -l), чтобы"
 echo " увидеть метку [LAB:$TOKEN] в приглашении — она должна быть видна"
