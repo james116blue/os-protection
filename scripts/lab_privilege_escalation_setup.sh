@@ -78,14 +78,33 @@ TOKEN=$(printf '%s' "${STUDENT_ID}-$(hostname)-$(date +%s%N)-${RANDOM}${RANDOM}"
 echo "$TOKEN" > /etc/lab-token
 chmod 644 /etc/lab-token
 
-cat > /etc/profile.d/99-lab-token.sh <<EOF
+# Общий фрагмент с меткой. Читается и из login-профиля, и из ~/.bashrc,
+# чтобы метка была видна в ЛЮБОЙ интерактивной оболочке: новое окно
+# терминала, `su hacker` (без '-'), `sudo -i`, `bash` внутри сессии и т.д.
+cat > /etc/lab-token.sh <<EOF
 export LAB_TOKEN="$TOKEN"
 export LAB_STUDENT="$STUDENT_ID"
 if [ -n "\${PS1:-}" ]; then
-  PS1="[LAB:$TOKEN]\$PS1"
+  case "$PS1" in
+    *"[LAB:$TOKEN]"*) ;;                       # метка уже есть — не дублируем
+    *) PS1="[LAB:$TOKEN]\$PS1" ;;
+  esac
 fi
 EOF
+chmod 644 /etc/lab-token.sh
+
+# login-оболочки (/etc/profile.d читается при login, до ~/.bashrc).
+printf '. /etc/lab-token.sh\n' > /etc/profile.d/99-lab-token.sh
 chmod 644 /etc/profile.d/99-lab-token.sh
+
+# ~/.bashrc читается позже (и для login, и для интерактивных не-login
+# оболочек) — после того, как дистрибутив выставил свой PS1, поэтому
+# префикс с меткой не затирается.
+for rc in /etc/skel/.bashrc /root/.bashrc /home/hacker/.bashrc; do
+  [ -f "$rc" ] || touch "$rc"
+  printf '\n# --- Метка лабораторной работы (Защита ОС) ---\n. /etc/lab-token.sh\n' >> "$rc"
+done
+chown hacker:hacker /home/hacker/.bashrc
 
 cat >> /etc/motd <<EOF
 
