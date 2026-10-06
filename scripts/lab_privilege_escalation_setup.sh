@@ -37,17 +37,41 @@ if [[ -f "$MARKER" ]]; then
   exit 0
 fi
 
+echo "[*] Предварительные проверки..."
+if id -u student >/dev/null 2>&1; then
+  cat >&2 <<'EOF'
+ОШИБКА: пользователь 'student' уже существует в системе.
+
+Этот скрипт рассчитан на чистую, только что установленную ВМ Debian 13,
+где учётной записи 'student' ещё нет. Повторное использование уже
+существующей записи небезопасно для лабораторной работы:
+
+  - её пароль не будет приведён к ожидаемому ('student'), поэтому шаги
+    лабораторной работы (su - student) могут не сработать;
+  - её shell/домашний каталог могут не соответствовать ожиданиям скрипта
+    (например, nologin вместо bash, отсутствующий $HOME);
+  - её текущие членства в группах (например, sudo) исказят задание 3
+    (student получит заведомо более широкие права, чем задумано).
+
+Варианты:
+  1) Запустить скрипт на чистой ВМ (рекомендуется).
+  2) Если вы точно знаете, что эта запись создана предыдущим прогоном
+     этого же скрипта и её можно удалить:
+       userdel -r student
+     и запустить скрипт заново.
+EOF
+  exit 1
+fi
+
 echo "[*] Обновление пакетов и установка зависимостей..."
 export DEBIAN_FRONTEND=noninteractive
 apt-get update -qq
 apt-get install -y -qq build-essential sudo cron python3 coreutils util-linux >/dev/null
 
 echo "[*] Создание учебного пользователя 'student' (роль «нарушителя»)..."
-if ! id -u student >/dev/null 2>&1; then
-  useradd -m -s /bin/bash student
-  echo "student:student" | chpasswd
-  echo "    Создан пользователь student / пароль student. Рекомендуется сменить пароль."
-fi
+useradd -m -s /bin/bash student
+echo "student:student" | chpasswd
+echo "    Создан пользователь student / пароль student. Рекомендуется сменить пароль."
 
 echo "[*] Генерация уникальной метки лабораторной работы (анти-плагиат)..."
 TOKEN=$(printf '%s' "${STUDENT_ID}-$(hostname)-$(date +%s%N)-${RANDOM}${RANDOM}" | sha256sum | cut -c1-16)
