@@ -167,6 +167,25 @@ setup_docker() {
         echo "ВНИМАНИЕ: не найден app/vulnerable_app.py рядом со скриптом." >&2
     fi
 
+    # В образе python:3-slim нет утилиты ping (пакет iputils-ping), а приложение
+    # вызывает её в эндпоинте /ping — без этого шаг эксплуатации не даёт вывода.
+    # Поэтому собираем локальный образ на той же основе, но с iputils-ping.
+    cat > "$app_dir/Dockerfile" <<'DOCKERFILE'
+FROM python:3-slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+DOCKERFILE
+
+    local image="lab-vuln-app"
+    if ! docker build -t "$image" "$app_dir"; then
+        echo "ВНИМАНИЕ: не удалось собрать образ lab-vuln-app (вероятно, нет доступа в сеть)." >&2
+        echo "Используется python:3-slim; утилиты ping внутри контейнера нет —" >&2
+        echo "приложение автоматически перейдёт на резервную команду getent hosts." >&2
+        image="python:3-slim"
+    fi
+
     docker rm -f vuln_app >/dev/null 2>&1 || true
 
     # НАМЕРЕННО ПЛОХАЯ КОНФИГУРАЦИЯ (цель задания 3):
@@ -179,10 +198,11 @@ setup_docker() {
         -p 8080:8080 \
         -v "$app_dir":/app \
         -w /app \
-        python:3-slim \
+        "$image" \
         python3 vulnerable_app.py
 
-    echo "Уязвимое приложение поднято на порту 8080 (контейнер privileged, /hostfs = корень хоста)"
+    echo "Уязвимое приложение поднято на порту 8080 (образ: $image; контейнер privileged, /hostfs = корень хоста)"
+    echo "Проверка: curl \"http://127.0.0.1:8080/ping?host=127.0.0.1\" — должен быть вывод ping."
     echo "Готово для задания 3. Debug-служба на 9000 не устанавливалась."
 }
 

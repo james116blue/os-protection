@@ -14,6 +14,7 @@
 
 import subprocess
 import socket
+import shutil
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from urllib.parse import urlparse, parse_qs
 
@@ -57,7 +58,12 @@ class Handler(BaseHTTPRequestHandler):
             # НАМЕРЕННАЯ УЯЗВИМОСТЬ:
             # shell=True + неэкранированная подстановка пользовательского
             # ввода в строку команды. Позволяет инъекцию через ; | && $() и т.д.
-            cmd = f"ping -c 1 -W 2 {host}"
+            if shutil.which("ping"):
+                cmd = f"ping -c 1 -W 2 {host}"
+            else:
+                # В slim-образах утилиты ping может не быть (пакет iputils-ping).
+                # Резервная команда сохраняет тот же сценарий инъекции.
+                cmd = f"getent hosts {host}"
             try:
                 result = subprocess.run(
                     cmd, shell=True, capture_output=True, text=True, timeout=10
